@@ -30,6 +30,10 @@ func createDefinition() plugin.CreateSpec {
 
 // RegisterCommands registers ArchivesSpace commands with the plugin SDK.
 func RegisterCommands(s *plugin.SDK) {
+	s.SetComposeProjectDiscovery(plugin.ComposeProjectDiscovery{
+		RequiredServices: []string{"archivesspace"},
+		Reason:           "archivesspace service",
+	})
 	s.AddCommand(s.GetDiscoveryMetadataCommand())
 	plugin.RegisterStandardComposeTemplate(s, createDefinition(), plugin.StandardComposeTemplateOptions{
 		DefaultPath:   defaultPath,
