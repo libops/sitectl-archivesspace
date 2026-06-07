@@ -34,8 +34,7 @@ func RegisterCommands(s *plugin.SDK) {
 		RequiredServices: []string{"archivesspace"},
 		Reason:           "archivesspace service",
 	})
-	s.AddCommand(s.GetDiscoveryMetadataCommand())
-	plugin.RegisterStandardComposeTemplate(s, createDefinition(), plugin.StandardComposeTemplateOptions{
+	s.RegisterStandardComposeTemplate(createDefinition(), plugin.StandardComposeTemplateOptions{
 		DefaultPath:   defaultPath,
 		DefaultPlugin: pluginName,
 		ReadyMessage:  "ArchivesSpace is ready for use through sitectl.",
