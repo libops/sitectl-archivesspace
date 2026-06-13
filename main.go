@@ -20,6 +20,7 @@ func main() {
 		Description:  "ArchivesSpace helpers",
 		Author:       "libops",
 		TemplateRepo: "https://github.com/libops/archivesspace",
+		Includes:     cmd.IncludedPlugins(),
 	})
 
 	cmd.RegisterCommands(sdk)

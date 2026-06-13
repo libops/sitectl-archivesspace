@@ -3,11 +3,14 @@ package cmd
 import "github.com/libops/sitectl/pkg/plugin"
 
 const (
-	createRepo   = "https://github.com/libops/archivesspace"
-	createBranch = "main"
-	pluginName   = "archivesspace"
-	defaultPath  = "./archivesspace"
-	displayName  = "ArchivesSpace"
+	createRepo                    = "https://github.com/libops/archivesspace"
+	createBranch                  = "main"
+	pluginName                    = "archivesspace"
+	defaultPath                   = "./archivesspace"
+	defaultDatabaseService        = "mysql"
+	defaultDatabaseUser           = "as"
+	defaultDatabasePasswordSecret = "ARCHIVESSPACE_DB_PASSWORD"
+	defaultDatabaseName           = "archivesspace"
 )
 
 func createDefinition() plugin.CreateSpec {
@@ -34,12 +37,15 @@ func RegisterCommands(s *plugin.SDK) {
 		RequiredServices: []string{"archivesspace"},
 		Reason:           "archivesspace service",
 	})
-	s.AddCommand(s.GetDiscoveryMetadataCommand())
-	plugin.RegisterStandardComposeTemplate(s, createDefinition(), plugin.StandardComposeTemplateOptions{
-		DefaultPath:   defaultPath,
-		DefaultPlugin: pluginName,
-		ReadyMessage:  "ArchivesSpace is ready for use through sitectl.",
-		DisplayName:   displayName,
+	s.RegisterComposeTemplateCreateRunner(createDefinition(), plugin.ComposeTemplateCreateOptions{
+		DefaultPath:                   defaultPath,
+		DefaultPlugin:                 pluginName,
+		DefaultDatabaseService:        defaultDatabaseService,
+		DefaultDatabaseUser:           defaultDatabaseUser,
+		DefaultDatabasePasswordSecret: defaultDatabasePasswordSecret,
+		DefaultDatabaseName:           defaultDatabaseName,
+		ReadyMessage:                  "ArchivesSpace is ready for use through sitectl.",
 	})
+	s.RegisterHealthcheckRunner(archivesSpaceHealthcheckRunner{})
 	registerArchivesSpaceCommands(s)
 }
