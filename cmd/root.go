@@ -7,7 +7,7 @@ const (
 	createBranch                  = "main"
 	pluginName                    = "archivesspace"
 	defaultPath                   = "./archivesspace"
-	defaultDatabaseService        = "mysql"
+	defaultDatabaseService        = "mariadb"
 	defaultDatabaseUser           = "as"
 	defaultDatabasePasswordSecret = "ARCHIVESSPACE_DB_PASSWORD"
 	defaultDatabaseName           = "archivesspace"
