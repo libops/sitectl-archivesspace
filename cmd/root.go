@@ -15,19 +15,35 @@ const (
 
 func createDefinition() plugin.CreateSpec {
 	return plugin.CreateSpec{
-		Name:                 "default",
-		Description:          "Create an ArchivesSpace stack",
-		Default:              true,
-		MinCPUCores:          4,
-		MinMemory:            "8 GiB",
-		MinDiskSpace:         "50 GiB",
-		DockerComposeRepo:    createRepo,
-		DockerComposeBranch:  createBranch,
-		DockerComposeBuild:   []string{"make build"},
-		DockerComposeInit:    []string{"make init"},
-		DockerComposeUp:      []string{"make up"},
-		DockerComposeDown:    []string{"make down"},
-		DockerComposeRollout: []string{"make rollout"},
+		Name:                "default",
+		Description:         "Create an ArchivesSpace stack",
+		Default:             true,
+		MinCPUCores:         4,
+		MinMemory:           "8 GiB",
+		MinDiskSpace:        "50 GiB",
+		DockerComposeRepo:   createRepo,
+		DockerComposeBranch: createBranch,
+		DockerComposeBuild: []string{
+			"docker compose pull --ignore-buildable",
+			"docker compose build --pull",
+		},
+		Images: []plugin.ComposeImageSpec{
+			{Service: "archivesspace", Image: "libops/archivesspace:4.2.0", BuildPolicy: plugin.BuildPolicyIfNotPresent},
+			{Service: "solr", Image: "libops/archivesspace-solr:4.2.0", BuildPolicy: plugin.BuildPolicyIfNotPresent},
+		},
+		DockerComposeInit: []string{
+			"./scripts/init.sh",
+		},
+		InitArtifacts: []plugin.InitArtifact{
+			{Path: ".env"},
+			{Path: "secrets/DB_ROOT_PASSWORD"},
+			{Path: "secrets/ARCHIVESSPACE_DB_PASSWORD"},
+		},
+		DockerComposeUp: []string{
+			"docker compose up --remove-orphans -d",
+		},
+		DockerComposeDown:    []string{"docker compose down"},
+		DockerComposeRollout: []string{"./scripts/rollout.sh"},
 	}
 }
 
