@@ -28,11 +28,11 @@ func createDefinition() plugin.CreateSpec {
 		MinDiskSpace:         "50 GiB",
 		DockerComposeRepo:    createRepo,
 		DockerComposeBranch:  createBranch,
-		DockerComposeBuild:   []string{"make build"},
-		DockerComposeInit:    []string{"make init"},
-		DockerComposeUp:      []string{"make up"},
-		DockerComposeDown:    []string{"make down"},
-		DockerComposeRollout: []string{"make rollout"},
+		DockerComposeBuild:   []string{"docker compose pull --ignore-buildable"},
+		DockerComposeInit:    []string{"./scripts/init.sh"},
+		DockerComposeUp:      []string{"./scripts/init.sh", "docker compose up --remove-orphans -d"},
+		DockerComposeDown:    []string{"docker compose down"},
+		DockerComposeRollout: []string{"./scripts/rollout.sh"},
 	}
 }
 
