@@ -1,6 +1,11 @@
 package cmd
 
-import "github.com/libops/sitectl/pkg/plugin"
+import (
+	corecomponent "github.com/libops/sitectl/pkg/component"
+	"github.com/libops/sitectl/pkg/plugin"
+	coredevmode "github.com/libops/sitectl/pkg/services/devmode"
+	coretraefik "github.com/libops/sitectl/pkg/services/traefik"
+)
 
 const (
 	createRepo                    = "https://github.com/libops/archivesspace"
@@ -46,6 +51,29 @@ func RegisterCommands(s *plugin.SDK) {
 		DefaultDatabaseName:           defaultDatabaseName,
 		ReadyMessage:                  "ArchivesSpace is ready for use through sitectl.",
 	})
+	registerApplicationComponents(s)
 	s.RegisterHealthcheckRunner(archivesSpaceHealthcheckRunner{})
 	registerArchivesSpaceCommands(s)
+}
+
+func registerApplicationComponents(s *plugin.SDK) {
+	reverseProxy, err := coretraefik.ReverseProxy(coretraefik.ReverseProxyOptions{NoAppService: true})
+	if err != nil {
+		panic(err)
+	}
+	devMode, err := coredevmode.Component(coredevmode.Options{
+		AppService: "archivesspace",
+		Volumes: []string{
+			"./plugins:/archivesspace/plugins:z,rw",
+			"./locales:/archivesspace/locales:z,rw",
+			"./stylesheets:/archivesspace/stylesheets:z,rw",
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+	s.RegisterServiceComponents(plugin.ServiceComponentRegistryOptions{
+		DisplayName: "ArchivesSpace",
+		Components:  []corecomponent.ComposeServiceComponent{reverseProxy, devMode},
+	})
 }
