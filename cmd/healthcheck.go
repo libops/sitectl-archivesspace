@@ -24,7 +24,7 @@ func (archivesSpaceHealthcheckRunner) Run(cmd *cobra.Command, ctx *config.Contex
 	defer func() { _ = checker.Close() }()
 
 	results = append(results,
-		checker.CheckMySQL(cmd.Context(), "mysql"),
+		checker.CheckMariaDB(cmd.Context(), "mariadb"),
 		checker.CheckSolrCore(cmd.Context(), "solr", "archivesspace"),
 	)
 	return results, nil
