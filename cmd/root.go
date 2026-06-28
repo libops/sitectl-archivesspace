@@ -7,8 +7,8 @@ const (
 	createBranch                  = "main"
 	pluginName                    = "archivesspace"
 	defaultPath                   = "./archivesspace"
-	defaultDatabaseService        = "mysql"
-	defaultDatabaseUser           = "as"
+	defaultDatabaseService        = "mariadb"
+	defaultDatabaseUser           = "archivesspace"
 	defaultDatabasePasswordSecret = "ARCHIVESSPACE_DB_PASSWORD"
 	defaultDatabaseName           = "archivesspace"
 )
@@ -25,7 +25,7 @@ func createDefinition() plugin.CreateSpec {
 		DockerComposeBranch: createBranch,
 		DockerComposeBuild: []string{
 			"docker compose pull --ignore-buildable",
-			"docker compose build --pull",
+			"docker compose build",
 		},
 		Images: []plugin.ComposeImageSpec{
 			{Service: "archivesspace", Image: "libops/archivesspace:4.2.0", BuildPolicy: plugin.BuildPolicyIfNotPresent},
