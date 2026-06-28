@@ -1,6 +1,6 @@
 # sitectl-archivesspace
 
-`sitectl-archivesspace` adds ArchivesSpace create metadata, API helpers, resource shortcuts, container scripts, lifecycle operations, validation, and health checks to [`sitectl`](https://sitectl.libops.io). It works with the [LibOps ArchivesSpace template](https://github.com/libops/archivesspace).
+`sitectl-archivesspace` simplifies the creation and operation of repositories created using the [LibOps ArchivesSpace template](https://github.com/libops/archivesspace). It provides sitectl commands for the ArchivesSpace API, resource shortcuts, container scripts, validation, and health checks.
 
 Documentation: https://sitectl.libops.io/plugins/archivesspace
 
