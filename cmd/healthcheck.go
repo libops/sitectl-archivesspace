@@ -1,33 +1,14 @@
 package cmd
 
-import (
-	"github.com/libops/sitectl/pkg/config"
-	"github.com/libops/sitectl/pkg/healthcheck"
-	"github.com/libops/sitectl/pkg/plugin"
-	sitevalidate "github.com/libops/sitectl/pkg/validate"
-	"github.com/spf13/cobra"
-)
+import "github.com/libops/sitectl/pkg/plugin"
 
-type archivesSpaceHealthcheckRunner struct{}
-
-func (archivesSpaceHealthcheckRunner) BindFlags(cmd *cobra.Command) {}
-
-func (archivesSpaceHealthcheckRunner) Run(cmd *cobra.Command, ctx *config.Context) ([]sitevalidate.Result, error) {
-	results := []sitevalidate.Result{
-		healthcheck.CheckHTTP(cmd.Context(), "http:archivesspace", healthcheck.PublicURLFromEnv(ctx, "http", "localhost")),
-	}
-
-	checker, err := healthcheck.NewDockerChecker(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = checker.Close() }()
-
-	results = append(results,
-		checker.CheckMariaDB(cmd.Context(), "mariadb"),
-		checker.CheckSolrCore(cmd.Context(), "solr", "archivesspace"),
-	)
-	return results, nil
-}
-
-var _ plugin.HealthcheckRunner = archivesSpaceHealthcheckRunner{}
+var archivesSpaceHealthcheckRunner = plugin.StandardComposeWebHealthcheck(plugin.StandardComposeWebHealthcheckOptions{
+	AppService:              "archivesspace",
+	HTTPName:                "http:archivesspace",
+	DefaultScheme:           "http",
+	DefaultDomain:           "localhost",
+	DatabaseService:         "mariadb",
+	CheckDatabaseDependency: true,
+	SolrService:             "solr",
+	SolrCore:                "archivesspace",
+})
