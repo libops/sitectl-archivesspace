@@ -42,8 +42,12 @@ func createDefinition() plugin.CreateSpec {
 		DockerComposeUp: []string{
 			"docker compose up --remove-orphans -d",
 		},
-		DockerComposeDown:    []string{"docker compose down"},
-		DockerComposeRollout: []string{"./scripts/rollout.sh"},
+		DockerComposeDown: []string{"docker compose down"},
+		DockerComposeRollout: []string{
+			"docker compose pull --ignore-buildable --quiet || docker compose pull --ignore-buildable || true",
+			"./scripts/init.sh",
+			"docker compose up --remove-orphans --wait --pull missing --quiet-pull -d",
+		},
 	}
 }
 
