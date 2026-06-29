@@ -71,6 +71,7 @@ func RegisterCommands(s *plugin.SDK) {
 		DefaultDatabaseName:           defaultDatabaseName,
 		ReadyMessage:                  "ArchivesSpace is ready for use through sitectl.",
 	})
+	registerApplicationComponents(s)
 	s.RegisterHealthcheckRunner(archivesSpaceHealthcheckRunner)
 	registerArchivesSpaceCommands(s)
 }
