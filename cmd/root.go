@@ -40,7 +40,6 @@ func createDefinition() plugin.CreateSpec {
 			"./scripts/init.sh",
 		},
 		InitArtifacts: []plugin.InitArtifact{
-			{Path: ".env"},
 			{Path: "secrets/DB_ROOT_PASSWORD"},
 			{Path: "secrets/ARCHIVESSPACE_DB_PASSWORD"},
 		},
@@ -77,7 +76,16 @@ func RegisterCommands(s *plugin.SDK) {
 }
 
 func registerApplicationComponents(s *plugin.SDK) {
-	reverseProxy, err := coretraefik.ReverseProxy(coretraefik.ReverseProxyOptions{NoAppService: true})
+	ingress, err := coretraefik.Ingress(coretraefik.IngressOptions{
+		NoAppService:    true,
+		HTTPEntrypoint:  "web",
+		HTTPSEntrypoint: "websecure",
+		ServiceEnvTemplates: map[string]map[string]string{
+			"archivesspace": {
+				"PUBLIC_URL": "{base_url}",
+			},
+		},
+	})
 	if err != nil {
 		panic(err)
 	}
@@ -94,6 +102,6 @@ func registerApplicationComponents(s *plugin.SDK) {
 	}
 	s.RegisterServiceComponents(plugin.ServiceComponentRegistryOptions{
 		DisplayName: "ArchivesSpace",
-		Components:  []corecomponent.ComposeServiceComponent{reverseProxy, devMode},
+		Components:  []corecomponent.ComposeServiceComponent{ingress, devMode},
 	})
 }

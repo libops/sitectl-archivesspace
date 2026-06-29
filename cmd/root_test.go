@@ -17,7 +17,7 @@ func TestRegisterCommandsRegistersApplicationComponents(t *testing.T) {
 	for _, definition := range definitions {
 		got[definition.Name] = true
 	}
-	for _, name := range []string{"reverse-proxy", "dev-mode"} {
+	for _, name := range []string{"ingress", "dev-mode"} {
 		if !got[name] {
 			t.Fatalf("expected component %q to be registered, got %+v", name, definitions)
 		}
