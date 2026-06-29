@@ -13,26 +13,46 @@ const (
 	pluginName                    = "archivesspace"
 	defaultPath                   = "./archivesspace"
 	defaultDatabaseService        = "mariadb"
-	defaultDatabaseUser           = "as"
+	defaultDatabaseUser           = "archivesspace"
 	defaultDatabasePasswordSecret = "ARCHIVESSPACE_DB_PASSWORD"
 	defaultDatabaseName           = "archivesspace"
 )
 
 func createDefinition() plugin.CreateSpec {
 	return plugin.CreateSpec{
-		Name:                 "default",
-		Description:          "Create an ArchivesSpace stack",
-		Default:              true,
-		MinCPUCores:          4,
-		MinMemory:            "8 GiB",
-		MinDiskSpace:         "50 GiB",
-		DockerComposeRepo:    createRepo,
-		DockerComposeBranch:  createBranch,
-		DockerComposeBuild:   []string{"docker compose pull --ignore-buildable"},
-		DockerComposeInit:    []string{"./scripts/init.sh"},
-		DockerComposeUp:      []string{"./scripts/init.sh", "docker compose up --remove-orphans -d"},
-		DockerComposeDown:    []string{"docker compose down"},
-		DockerComposeRollout: []string{"./scripts/rollout.sh"},
+		Name:                "default",
+		Description:         "Create an ArchivesSpace stack",
+		Default:             true,
+		MinCPUCores:         4,
+		MinMemory:           "8 GiB",
+		MinDiskSpace:        "50 GiB",
+		DockerComposeRepo:   createRepo,
+		DockerComposeBranch: createBranch,
+		DockerComposeBuild: []string{
+			"docker compose pull --ignore-buildable",
+			"docker compose build",
+		},
+		Images: []plugin.ComposeImageSpec{
+			{Service: "archivesspace", Image: "libops/archivesspace:4.2.0", BuildPolicy: plugin.BuildPolicyIfNotPresent},
+			{Service: "solr", Image: "libops/archivesspace-solr:4.2.0", BuildPolicy: plugin.BuildPolicyIfNotPresent},
+		},
+		DockerComposeInit: []string{
+			"./scripts/init.sh",
+		},
+		InitArtifacts: []plugin.InitArtifact{
+			{Path: ".env"},
+			{Path: "secrets/DB_ROOT_PASSWORD"},
+			{Path: "secrets/ARCHIVESSPACE_DB_PASSWORD"},
+		},
+		DockerComposeUp: []string{
+			"docker compose up --remove-orphans -d",
+		},
+		DockerComposeDown: []string{"docker compose down"},
+		DockerComposeRollout: []string{
+			"docker compose pull --ignore-buildable --quiet || docker compose pull --ignore-buildable || true",
+			"./scripts/init.sh",
+			"docker compose up --remove-orphans --wait --pull missing --quiet-pull -d",
+		},
 	}
 }
 
@@ -52,7 +72,7 @@ func RegisterCommands(s *plugin.SDK) {
 		ReadyMessage:                  "ArchivesSpace is ready for use through sitectl.",
 	})
 	registerApplicationComponents(s)
-	s.RegisterHealthcheckRunner(archivesSpaceHealthcheckRunner{})
+	s.RegisterHealthcheckRunner(archivesSpaceHealthcheckRunner)
 	registerArchivesSpaceCommands(s)
 }
 
