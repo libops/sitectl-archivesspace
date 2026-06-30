@@ -77,7 +77,7 @@ func RegisterCommands(s *plugin.SDK) {
 }
 
 func registerApplicationComponents(s *plugin.SDK) {
-	reverseProxy, err := coretraefik.ReverseProxy(coretraefik.ReverseProxyOptions{NoAppService: true})
+	ingress, err := coretraefik.Ingress(coretraefik.IngressOptions{NoAppService: true})
 	if err != nil {
 		panic(err)
 	}
@@ -94,6 +94,6 @@ func registerApplicationComponents(s *plugin.SDK) {
 	}
 	s.RegisterServiceComponents(plugin.ServiceComponentRegistryOptions{
 		DisplayName: "ArchivesSpace",
-		Components:  []corecomponent.ComposeServiceComponent{reverseProxy, devMode},
+		Components:  []corecomponent.ComposeServiceComponent{ingress, devMode},
 	})
 }
