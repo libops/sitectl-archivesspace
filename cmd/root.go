@@ -77,7 +77,11 @@ func RegisterCommands(s *plugin.SDK) {
 }
 
 func registerApplicationComponents(s *plugin.SDK) {
-	ingress, err := coretraefik.Ingress(coretraefik.IngressOptions{NoAppService: true})
+	ingress, err := coretraefik.Ingress(coretraefik.IngressOptions{
+		NoAppService:    true,
+		HTTPEntrypoint:  "web",
+		HTTPSEntrypoint: "websecure",
+	})
 	if err != nil {
 		panic(err)
 	}

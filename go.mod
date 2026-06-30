@@ -3,7 +3,7 @@ module github.com/libops/sitectl-archivesspace
 go 1.26.1
 
 require (
-	github.com/libops/sitectl v0.31.0
+	github.com/libops/sitectl v0.33.0
 	github.com/spf13/cobra v1.10.2
 )
 
