@@ -40,7 +40,6 @@ func createDefinition() plugin.CreateSpec {
 			"./scripts/init.sh",
 		},
 		InitArtifacts: []plugin.InitArtifact{
-			{Path: ".env"},
 			{Path: "secrets/DB_ROOT_PASSWORD"},
 			{Path: "secrets/ARCHIVESSPACE_DB_PASSWORD"},
 		},

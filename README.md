@@ -49,7 +49,8 @@ sitectl image set --tag archivesspace=4.2.0 --tag solr=9
 Use [`sitectl set`](https://sitectl.libops.io/commands/set) and [`sitectl converge`](https://sitectl.libops.io/commands/converge) for component changes:
 
 ```bash
-sitectl set reverse-proxy enabled --trusted-ip 203.0.113.10/32
+sitectl set ingress enabled --mode https-default --domain archivesspace.localhost
+sitectl set ingress enabled --trusted-ip 203.0.113.10/32
 sitectl converge
 ```
 
