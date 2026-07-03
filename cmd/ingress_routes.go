@@ -20,7 +20,10 @@ func (archivesSpaceIngressRouteProvider) Routes(cmd *cobra.Command, ctx *config.
 	if err != nil {
 		return plugin.IngressRoutes{}, err
 	}
-	if parsedScheme, parsedDomain := archivesSpaceSchemeDomain(env["PUBLIC_URL"]); parsedDomain != "" {
+	if ingressDomain := firstArchivesSpaceHostname(env["INGRESS_HOSTNAMES"]); ingressDomain != "" || strings.TrimSpace(env["INGRESS_SCHEME"]) != "" {
+		scheme = firstArchivesSpaceIngressValue(env["INGRESS_SCHEME"], scheme)
+		domain = firstArchivesSpaceIngressValue(ingressDomain, domain)
+	} else if parsedScheme, parsedDomain := archivesSpaceSchemeDomain(env["PUBLIC_URL"]); parsedDomain != "" {
 		scheme = firstArchivesSpaceIngressValue(parsedScheme, scheme)
 		domain = parsedDomain
 	}
@@ -70,6 +73,16 @@ func archivesSpaceSchemeDomain(value string) (string, string) {
 		return "", ""
 	}
 	return strings.TrimSpace(parsed.Scheme), strings.TrimSpace(parsed.Host)
+}
+
+func firstArchivesSpaceHostname(value string) string {
+	for _, hostname := range strings.Split(value, ",") {
+		hostname = strings.TrimSpace(hostname)
+		if hostname != "" {
+			return hostname
+		}
+	}
+	return ""
 }
 
 func firstArchivesSpaceIngressValue(values ...string) string {
