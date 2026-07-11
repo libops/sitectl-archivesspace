@@ -32,3 +32,14 @@ jobs:
       local-plugin-path: sitectl-archivesspace
       sitectl-repository: libops/sitectl
       sitectl-ref: 72c60889d65fd5d7e5d6a2e644a30b53d1699bcd # v0.38.0
+
+  integration-gate:
+    name: sitectl create archivesspace default
+    if: ${{ always() }}
+    needs: create-archivesspace
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require successful create smoke test
+        env:
+          CREATE_RESULT: ${{ needs.create-archivesspace.result }}
+        run: test "$CREATE_RESULT" = success
