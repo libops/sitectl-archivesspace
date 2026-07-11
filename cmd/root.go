@@ -77,17 +77,22 @@ func RegisterCommands(s *plugin.SDK) {
 }
 
 func registerApplicationComponents(s *plugin.SDK) {
+	s.RegisterServiceComponents(plugin.ServiceComponentRegistryOptions{
+		DisplayName: "ArchivesSpace",
+		Components:  applicationComponents(),
+	})
+}
+
+func applicationComponents() []corecomponent.ComposeServiceComponent {
 	ingress, err := coretraefik.Ingress(coretraefik.IngressOptions{
-		AppService:      "archivesspace",
-		HTTPEntrypoint:  "web",
-		HTTPSEntrypoint: "websecure",
-		AppEnvDeletes:   []string{"PUBLIC_URL"},
+		AppService:                     "archivesspace",
+		NoDefaultAppRuntimeEnvironment: true,
+		HTTPEntrypoint:                 "web",
+		HTTPSEntrypoint:                "websecure",
+		AppEnvDeletes:                  []string{"PUBLIC_URL"},
 	})
 	if err != nil {
 		panic(err)
 	}
-	s.RegisterServiceComponents(plugin.ServiceComponentRegistryOptions{
-		DisplayName: "ArchivesSpace",
-		Components:  []corecomponent.ComposeServiceComponent{ingress},
-	})
+	return []corecomponent.ComposeServiceComponent{ingress}
 }

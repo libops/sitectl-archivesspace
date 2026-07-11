@@ -14,30 +14,21 @@ concurrency:
 jobs:
   create-archivesspace:
     name: sitectl create archivesspace ${{ matrix.create_definition }}
-    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         include:
           - create_definition: default
             create_args: ""
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
-
-      - name: Set up Go
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
-        with:
-          go-version: "1.26.x"
-
-      - name: Install sitectl
-        uses: libops/.github/.github/actions/install-sitectl@8f2eb98981e477cb8ac65d24c6fe06f45e31159c # main
-
-      - name: setup git identity
-        run: |
-          git config --global user.email "actions@github.com"
-          git config --global user.name "GitHub Actions"
-
-      - name: Run create integration test
-        run: make integration-test CREATE_DEFINITION=${{ matrix.create_definition }} CREATE_ARGS="${{ matrix.create_args }}"
-        env:
-          TERM: xterm-256color
+    uses: libops/.github/.github/workflows/sitectl-create-smoke-test.yaml@e366f7422565ea5ee71c0c626b740e03f2e2ffcd # main
+    with:
+      plugin: archivesspace
+      create-definition: ${{ matrix.create_definition }}
+      create-args: ${{ matrix.create_args }}
+      template-repo: https://github.com/libops/archivesspace
+      checkout-path: sitectl-archivesspace
+      checkout-source: template
+      project-path: archivesspace-site-template
+      local-plugin-path: sitectl-archivesspace
+      sitectl-repository: libops/sitectl
+      sitectl-ref: 72c60889d65fd5d7e5d6a2e644a30b53d1699bcd # v0.38.0

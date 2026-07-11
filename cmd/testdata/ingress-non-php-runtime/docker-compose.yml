@@ -1,0 +1,14 @@
+services:
+  traefik:
+    image: traefik:v3
+  archivesspace:
+    image: libops/archivesspace:4.2.0
+    environment:
+      KEEP_ME: "true"
+      PUBLIC_URL: http://stale.example.org
+      PHP_UPLOAD_MAX_FILESIZE: 1G
+      PHP_MAX_EXECUTION_TIME: "300"
+      NGINX_CLIENT_MAX_BODY_SIZE: 1G
+      NGINX_SET_REAL_IP_FROM: 10.0.0.0/8
+      NGINX_SET_REAL_IP_FROM2: 192.0.2.0/24
+      NGINX_REAL_IP_RECURSIVE: "on"
