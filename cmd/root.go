@@ -3,7 +3,6 @@ package cmd
 import (
 	corecomponent "github.com/libops/sitectl/pkg/component"
 	"github.com/libops/sitectl/pkg/plugin"
-	coredevmode "github.com/libops/sitectl/pkg/services/devmode"
 	coretraefik "github.com/libops/sitectl/pkg/services/traefik"
 )
 
@@ -33,7 +32,7 @@ func createDefinition() plugin.CreateSpec {
 			"docker compose build",
 		},
 		Images: []plugin.ComposeImageSpec{
-			{Service: "archivesspace", Image: "libops/archivesspace:4.2.0", BuildPolicy: plugin.BuildPolicyIfNotPresent},
+			{Service: "archivesspace", Image: "libops/archivesspace:4.2.0", BuildPolicy: plugin.BuildPolicyAlways},
 			{Service: "solr", Image: "libops/archivesspace-solr:4.2.0", BuildPolicy: plugin.BuildPolicyIfNotPresent},
 		},
 		DockerComposeInit: []string{
@@ -44,13 +43,14 @@ func createDefinition() plugin.CreateSpec {
 			{Path: "secrets/ARCHIVESSPACE_DB_PASSWORD"},
 		},
 		DockerComposeUp: []string{
-			"docker compose up --remove-orphans -d",
+			"docker compose up --remove-orphans --wait --wait-timeout 600 -d",
 		},
 		DockerComposeDown: []string{"docker compose down"},
 		DockerComposeRollout: []string{
-			"docker compose pull --ignore-buildable --quiet || docker compose pull --ignore-buildable || true",
+			"docker compose pull --ignore-buildable --quiet || docker compose pull --ignore-buildable",
+			"docker compose build --pull",
 			"./scripts/init.sh",
-			"docker compose up --remove-orphans --wait --pull missing --quiet-pull -d",
+			"docker compose up --remove-orphans --wait --wait-timeout 600 --pull missing --quiet-pull -d",
 		},
 	}
 }
@@ -86,19 +86,8 @@ func registerApplicationComponents(s *plugin.SDK) {
 	if err != nil {
 		panic(err)
 	}
-	devMode, err := coredevmode.Component(coredevmode.Options{
-		AppService: "archivesspace",
-		Volumes: []string{
-			"./plugins:/archivesspace/plugins:z,rw",
-			"./locales:/archivesspace/locales:z,rw",
-			"./stylesheets:/archivesspace/stylesheets:z,rw",
-		},
-	})
-	if err != nil {
-		panic(err)
-	}
 	s.RegisterServiceComponents(plugin.ServiceComponentRegistryOptions{
 		DisplayName: "ArchivesSpace",
-		Components:  []corecomponent.ComposeServiceComponent{ingress, devMode},
+		Components:  []corecomponent.ComposeServiceComponent{ingress},
 	})
 }

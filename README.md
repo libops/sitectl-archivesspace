@@ -43,15 +43,16 @@ sitectl validate
 Use [`sitectl image`](https://sitectl.libops.io/commands/image) for local image or build-arg overrides:
 
 ```bash
-sitectl image set --tag archivesspace=4.2.0 --tag solr=9
+sitectl image set --tag archivesspace=4.2.0 --tag solr=4.2.0
 ```
 
-Use [`sitectl set`](https://sitectl.libops.io/commands/set) and [`sitectl converge`](https://sitectl.libops.io/commands/converge) for component changes:
+The plugin intentionally does not register broad development bind mounts because they can hide application content bundled in the base image. Add customizations through the downstream build or a narrowly targeted override.
+
+Use [`sitectl set`](https://sitectl.libops.io/commands/set) for component changes; it updates component-owned files immediately:
 
 ```bash
 sitectl set ingress enabled --mode https-custom --domain archivesspace.localhost
 sitectl set ingress enabled --trusted-ip 203.0.113.10/32
-sitectl converge
 ```
 
 See the [ArchivesSpace plugin docs](https://sitectl.libops.io/plugins/archivesspace) for API helpers, resource shortcuts, container scripts, lifecycle operations, and rollout details.
