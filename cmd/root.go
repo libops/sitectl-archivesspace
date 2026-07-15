@@ -8,7 +8,7 @@ import (
 
 const (
 	createRepo                    = "https://github.com/libops/archivesspace"
-	createBranch                  = "main"
+	createBranch                  = "v1.0.0"
 	pluginName                    = "archivesspace"
 	defaultPath                   = "./archivesspace"
 	defaultDatabaseService        = "mariadb"
