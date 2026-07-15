@@ -20,7 +20,7 @@ jobs:
         include:
           - create_definition: default
             create_args: ""
-    uses: libops/.github/.github/workflows/sitectl-create-smoke-test.yaml@e366f7422565ea5ee71c0c626b740e03f2e2ffcd # main
+    uses: libops/.github/.github/workflows/sitectl-create-smoke-test.yaml@4f6b4fe8dfb145a627fe7b73ceddd7304547f1a2 # main
     with:
       plugin: archivesspace
       create-definition: ${{ matrix.create_definition }}
@@ -31,7 +31,10 @@ jobs:
       project-path: archivesspace-site-template
       local-plugin-path: sitectl-archivesspace
       sitectl-repository: libops/sitectl
-      sitectl-ref: 72c60889d65fd5d7e5d6a2e644a30b53d1699bcd # v0.38.0
+      sitectl-ref: 9bae54578003bfdfab0bb44c13ad4149501a7fc8 # v0.40.0
+      package-versions: sitectl=0.40.0
+      allow-unversioned-packages: false
+      expected-template-lock-revision: v1.0.0
 
   integration-gate:
     name: sitectl create archivesspace default
