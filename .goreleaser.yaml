@@ -43,6 +43,7 @@ brews:
   - name: sitectl-archivesspace
     description: "A sitectl plugin for ArchivesSpace stacks"
     homepage: "https://github.com/libops/sitectl-archivesspace"
+    url_template: "https://github.com/libops/sitectl-archivesspace/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
     license: MIT
     commit_author:
       name: sitectl-dev[bot]
