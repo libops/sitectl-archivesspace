@@ -30,10 +30,7 @@ jobs:
       checkout-source: template
       project-path: archivesspace-site-template
       local-plugin-path: sitectl-archivesspace
-      sitectl-repository: libops/sitectl
-      sitectl-ref: 65cfde137a58ba14aaa9a1512d88b943888872f3 # v1.0.0
-      package-versions: sitectl=1.0.0
-      allow-unversioned-packages: false
+      allow-unversioned-packages: true
       expected-template-lock-revision: v1.0.0
 
   integration-gate:
