@@ -24,7 +24,9 @@ jobs:
     with:
       plugin: archivesspace
       create-definition: ${{ matrix.create_definition }}
-      create-args: ${{ matrix.create_args }}
+      create-args: >-
+        ${{ matrix.create_args }}
+        --yolo
       template-repo: https://github.com/libops/archivesspace
       checkout-path: sitectl-archivesspace
       checkout-source: template
