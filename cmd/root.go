@@ -8,7 +8,7 @@ import (
 
 const (
 	createRepo                    = "https://github.com/libops/archivesspace"
-	createBranch                  = "v1.0.0"
+	createBranch                  = "main"
 	pluginName                    = "archivesspace"
 	defaultPath                   = "./archivesspace"
 	defaultDatabaseService        = "mariadb"
@@ -36,11 +36,8 @@ func createDefinition() plugin.CreateSpec {
 			{Service: "solr", Image: "libops/archivesspace-solr:4.2.0", BuildPolicy: plugin.BuildPolicyIfNotPresent},
 		},
 		DockerComposeInit: []string{
-			"./scripts/init.sh",
-		},
-		InitArtifacts: []plugin.InitArtifact{
-			{Path: "secrets/DB_ROOT_PASSWORD"},
-			{Path: "secrets/ARCHIVESSPACE_DB_PASSWORD"},
+			"mkdir -p ./secrets",
+			"docker compose run --rm init",
 		},
 		DockerComposeUp: []string{
 			"docker compose up --remove-orphans --wait --wait-timeout 600 -d",
@@ -49,7 +46,8 @@ func createDefinition() plugin.CreateSpec {
 		DockerComposeRollout: []string{
 			"docker compose pull --ignore-buildable --quiet || docker compose pull --ignore-buildable",
 			"docker compose build --pull",
-			"./scripts/init.sh",
+			"mkdir -p ./secrets",
+			"docker compose run --rm init",
 			"docker compose up --remove-orphans --wait --wait-timeout 600 --pull missing --quiet-pull -d",
 		},
 	}
