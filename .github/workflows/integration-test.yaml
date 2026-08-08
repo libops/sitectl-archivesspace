@@ -33,7 +33,7 @@ jobs:
       project-path: archivesspace-site-template
       local-plugin-path: sitectl-archivesspace
       packages: sitectl
-      package-versions: sitectl=1.7.0
+      package-versions: sitectl=1.8.0
       allow-unversioned-packages: false
       expected-template-lock-revision: v1.0.0
       run-verify: true

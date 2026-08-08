@@ -90,8 +90,7 @@ file instead of allowing automation to capture it in logs.`,
 			if err != nil {
 				return err
 			}
-			writeArchivesSpaceOutput(cmd, output)
-			return nil
+			return writeArchivesSpaceOutput(cmd, output)
 		},
 	}
 	cmd.Flags().StringVar(&opts.baseURL, "url", opts.baseURL, "Base ArchivesSpace API URL reachable from the ArchivesSpace container.")
@@ -301,8 +300,7 @@ func runArchivesSpaceAPIRequest(s *sitectlplugin.SDK, cmd *cobra.Command, method
 	if err != nil {
 		return err
 	}
-	writeArchivesSpaceOutput(cmd, output)
-	return nil
+	return writeArchivesSpaceOutput(cmd, output)
 }
 
 func executeArchivesSpaceAPIRequest(s *sitectlplugin.SDK, cmd *cobra.Command, method, path string, opts archivesSpaceAPIOptions) (string, error) {
@@ -411,11 +409,12 @@ func runArchivesSpaceContainerCurl(runCtx context.Context, s *sitectlplugin.SDK,
 	return strings.TrimSpace(stdout.String()), nil
 }
 
-func writeArchivesSpaceOutput(cmd *cobra.Command, output string) {
+func writeArchivesSpaceOutput(cmd *cobra.Command, output string) error {
 	if output == "" {
-		return
+		return nil
 	}
-	fmt.Fprintln(cmd.OutOrStdout(), output)
+	_, err := fmt.Fprintln(cmd.OutOrStdout(), output)
+	return err
 }
 
 func readArchivesSpaceSecret(explicitFile, fileEnv, valueEnv string) (string, error) {
