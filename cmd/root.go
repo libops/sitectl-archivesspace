@@ -70,6 +70,7 @@ func RegisterCommands(s *plugin.SDK) {
 	})
 	registerApplicationComponents(s)
 	s.RegisterHealthcheckRunner(archivesSpaceHealthcheckRunner)
+	s.RegisterVerifyRunner(&archivesSpaceVerifyRunner{sdk: s})
 	s.RegisterIngressRouteProvider(archivesSpaceIngressRouteProvider{})
 	registerArchivesSpaceCommands(s)
 }

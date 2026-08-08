@@ -38,7 +38,29 @@ Use [`sitectl healthcheck`](https://sitectl.libops.io/commands/healthcheck) and 
 ```bash
 sitectl healthcheck
 sitectl validate
+sitectl verify --session-file /run/secrets/archivesspace_session
 ```
+
+`verify` confirms the backend API version, authenticated repository access, and
+Solr-backed search. Supply credentials by reference with `--session-file` or
+`ARCHIVESSPACE_SESSION_FILE`; `ARCHIVESSPACE_SESSION` is also supported for
+ephemeral environments. The session value is sent to `curl` over stdin and is
+never rendered into a Compose shell command or process argument. Fresh-install
+CI may use `sitectl verify --disposable`; retained sites must use their rotated
+credential instead.
+
+API login and request credentials follow the same rule:
+
+```bash
+umask 077
+ARCHIVESSPACE_PASSWORD_FILE=/secure/path/archivesspace-password \
+  sitectl archivesspace api login \
+  | jq -r .session > .archivesspace-session
+ARCHIVESSPACE_SESSION_FILE=.archivesspace-session \
+  sitectl archivesspace repositories
+```
+
+Remove `.archivesspace-session` when the task is complete.
 
 Use [`sitectl image`](https://sitectl.libops.io/commands/image) for local image or build-arg overrides:
 

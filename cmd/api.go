@@ -1,29 +1,42 @@
 package cmd
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"net/url"
 	"os"
 	"strings"
 
+	"github.com/libops/sitectl/pkg/docker"
 	sitectlplugin "github.com/libops/sitectl/pkg/plugin"
 	"github.com/spf13/cobra"
 )
 
-const archivesSpaceService = "archivesspace"
+const (
+	archivesSpaceService         = "archivesspace"
+	archivesSpaceInternalAPIURL  = "http://127.0.0.1:8089"
+	archivesSpaceSessionEnv      = "ARCHIVESSPACE_SESSION"
+	archivesSpaceSessionFileEnv  = "ARCHIVESSPACE_SESSION_FILE"
+	archivesSpacePasswordEnv     = "ARCHIVESSPACE_PASSWORD"
+	archivesSpacePasswordFileEnv = "ARCHIVESSPACE_PASSWORD_FILE"
+)
+
+var archivesSpaceRunCurl = runArchivesSpaceContainerCurl
 
 type archivesSpaceAPIOptions struct {
-	baseURL string
-	session string
-	query   []string
-	data    string
-	file    string
+	baseURL      string
+	sessionFile  string
+	sessionValue string
+	query        []string
+	data         string
+	file         string
 }
 
 type archivesSpaceLoginOptions struct {
-	baseURL  string
-	username string
-	password string
+	baseURL      string
+	username     string
+	passwordFile string
 }
 
 func registerArchivesSpaceCommands(s *sitectlplugin.SDK) {
@@ -52,32 +65,38 @@ func archivesSpaceAPICommand(s *sitectlplugin.SDK) *cobra.Command {
 
 func archivesSpaceLoginCommand(s *sitectlplugin.SDK) *cobra.Command {
 	opts := archivesSpaceLoginOptions{
-		baseURL:  "http://localhost/api",
+		baseURL:  archivesSpaceInternalAPIURL,
 		username: "admin",
 	}
 	cmd := &cobra.Command{
 		Use:   "login",
 		Short: "Log in to ArchivesSpace and print the session response",
-		Args:  cobra.NoArgs,
+		Long: `Authenticate to the ArchivesSpace backend API for the active site.
+
+The password is read from a local file or environment reference and sent to
+curl over stdin, so it is not placed in a shell command or process argument.
+The JSON response contains a session credential; redirect it to a protected
+file instead of allowing automation to capture it in logs.`,
+		Example: `  umask 077
+  ARCHIVESSPACE_PASSWORD_FILE=/secure/path/archivesspace-password \
+    sitectl archivesspace api login > .archivesspace-login.json`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			password := opts.password
-			if password == "" {
-				password = os.Getenv("ARCHIVESSPACE_PASSWORD")
+			password, err := readArchivesSpaceSecret(opts.passwordFile, archivesSpacePasswordFileEnv, archivesSpacePasswordEnv)
+			if err != nil {
+				return fmt.Errorf("load ArchivesSpace password: %w", err)
 			}
-			if password == "" {
-				return fmt.Errorf("provide --password or set ARCHIVESSPACE_PASSWORD")
-			}
-			requestURL, err := buildArchivesSpaceAPIURL(opts.baseURL, "users/"+url.PathEscape(opts.username)+"/login", nil)
+			output, err := executeArchivesSpaceLogin(s, cmd, opts.baseURL, opts.username, password)
 			if err != nil {
 				return err
 			}
-			curlArgs := []string{"curl", "-fsS", "-X", "POST", "-F", "password=" + password, requestURL}
-			return s.RunActiveComposeProjectCommand(cmd, sitectlplugin.ShellJoin(curlArgs))
+			writeArchivesSpaceOutput(cmd, output)
+			return nil
 		},
 	}
-	cmd.Flags().StringVar(&opts.baseURL, "url", opts.baseURL, "Base ArchivesSpace API URL.")
+	cmd.Flags().StringVar(&opts.baseURL, "url", opts.baseURL, "Base ArchivesSpace API URL reachable from the ArchivesSpace container.")
 	cmd.Flags().StringVar(&opts.username, "username", opts.username, "ArchivesSpace username.")
-	cmd.Flags().StringVar(&opts.password, "password", "", "ArchivesSpace password. Defaults to ARCHIVESSPACE_PASSWORD.")
+	cmd.Flags().StringVar(&opts.passwordFile, "password-file", "", "Read the ArchivesSpace password from this local file instead of process arguments. Defaults to ARCHIVESSPACE_PASSWORD_FILE or ARCHIVESSPACE_PASSWORD.")
 	return cmd
 }
 
@@ -86,7 +105,14 @@ func archivesSpaceAPIRequestCommand(s *sitectlplugin.SDK) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "request METHOD PATH",
 		Short: "Call an arbitrary ArchivesSpace API path",
-		Args:  cobra.ExactArgs(2),
+		Long: `Call an arbitrary path on the ArchivesSpace backend API for the active site.
+
+The plugin executes curl inside the running ArchivesSpace container. Session
+credentials and request bodies are carried over stdin instead of a shell
+command. A --file path identifies a local JSON file read by sitectl. A literal
+--data value remains visible in the local sitectl process arguments, so use
+--file whenever a request body is confidential.`,
+		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runArchivesSpaceAPIRequest(s, cmd, args[0], args[1], opts)
 		},
@@ -257,12 +283,12 @@ func archivesSpaceNamedScriptCommand(s *sitectlplugin.SDK, name, short string) *
 }
 
 func defaultArchivesSpaceAPIOptions() archivesSpaceAPIOptions {
-	return archivesSpaceAPIOptions{baseURL: "http://localhost/api"}
+	return archivesSpaceAPIOptions{baseURL: archivesSpaceInternalAPIURL}
 }
 
 func bindArchivesSpaceAPIFlags(cmd *cobra.Command, opts *archivesSpaceAPIOptions, includeBody bool) {
-	cmd.Flags().StringVar(&opts.baseURL, "url", opts.baseURL, "Base ArchivesSpace API URL.")
-	cmd.Flags().StringVar(&opts.session, "session", "", "ArchivesSpace session token for X-ArchivesSpace-Session.")
+	cmd.Flags().StringVar(&opts.baseURL, "url", opts.baseURL, "Base ArchivesSpace API URL reachable from the ArchivesSpace container.")
+	cmd.Flags().StringVar(&opts.sessionFile, "session-file", "", "Read the ArchivesSpace session from this local file instead of process arguments. Defaults to ARCHIVESSPACE_SESSION_FILE or ARCHIVESSPACE_SESSION.")
 	cmd.Flags().StringArrayVarP(&opts.query, "query", "q", nil, "Additional query parameter as name=value. May be repeated.")
 	if includeBody {
 		cmd.Flags().StringVar(&opts.data, "data", "", "JSON request body.")
@@ -271,25 +297,207 @@ func bindArchivesSpaceAPIFlags(cmd *cobra.Command, opts *archivesSpaceAPIOptions
 }
 
 func runArchivesSpaceAPIRequest(s *sitectlplugin.SDK, cmd *cobra.Command, method, path string, opts archivesSpaceAPIOptions) error {
-	requestURL, err := buildArchivesSpaceAPIURL(opts.baseURL, path, opts.query)
+	output, err := executeArchivesSpaceAPIRequest(s, cmd, method, path, opts)
 	if err != nil {
 		return err
 	}
+	writeArchivesSpaceOutput(cmd, output)
+	return nil
+}
+
+func executeArchivesSpaceAPIRequest(s *sitectlplugin.SDK, cmd *cobra.Command, method, path string, opts archivesSpaceAPIOptions) (string, error) {
+	requestURL, err := buildArchivesSpaceAPIURL(opts.baseURL, path, opts.query)
+	if err != nil {
+		return "", err
+	}
 	args := []string{"curl", "-fsS", "-X", strings.ToUpper(method), "-H", "Accept: application/json"}
-	if opts.session != "" {
-		args = append(args, "-H", "X-ArchivesSpace-Session: "+opts.session)
+	var curlConfig strings.Builder
+	session := opts.sessionValue
+	if session == "" {
+		session, err = readArchivesSpaceSecretIfConfigured(opts.sessionFile, archivesSpaceSessionFileEnv, archivesSpaceSessionEnv)
+		if err != nil {
+			return "", fmt.Errorf("load ArchivesSpace session: %w", err)
+		}
 	}
-	if opts.data != "" || opts.file != "" {
-		args = append(args, "-H", "Content-Type: application/json")
+	if session != "" {
+		headerValue, err := curlConfigValue("X-ArchivesSpace-Session: " + session)
+		if err != nil {
+			return "", fmt.Errorf("encode ArchivesSpace session: %w", err)
+		}
+		fmt.Fprintf(&curlConfig, "header = %s\n", headerValue)
 	}
-	if opts.data != "" {
-		args = append(args, "--data", opts.data)
+	if opts.data != "" && opts.file != "" {
+		return "", fmt.Errorf("provide only one of --data or --file")
 	}
+	body := opts.data
 	if opts.file != "" {
-		args = append(args, "--data-binary", "@"+opts.file)
+		data, err := os.ReadFile(opts.file) // #nosec G304 -- the operator explicitly selects the request body file.
+		if err != nil {
+			return "", fmt.Errorf("read ArchivesSpace request body %q: %w", opts.file, err)
+		}
+		body = string(data)
 	}
-	args = append(args, requestURL)
-	return s.RunActiveComposeProjectCommand(cmd, sitectlplugin.ShellJoin(args))
+	if body != "" {
+		args = append(args, "-H", "Content-Type: application/json")
+		bodyValue, err := curlConfigDataValue(body)
+		if err != nil {
+			return "", fmt.Errorf("encode ArchivesSpace request body: %w", err)
+		}
+		fmt.Fprintf(&curlConfig, "data-binary = %s\n", bodyValue)
+	}
+	if curlConfig.Len() > 0 {
+		args = append(args, "--config", "-")
+	}
+	// End option parsing before the operator-selected URL. This keeps a
+	// malformed value from being interpreted as another curl option.
+	args = append(args, "--", requestURL)
+	return archivesSpaceRunCurl(cmd.Context(), s, cmd, args, curlConfig.String())
+}
+
+func executeArchivesSpaceLogin(s *sitectlplugin.SDK, cmd *cobra.Command, baseURL, username, password string) (string, error) {
+	requestURL, err := buildArchivesSpaceAPIURL(baseURL, "users/"+url.PathEscape(username)+"/login", nil)
+	if err != nil {
+		return "", err
+	}
+	passwordValue, err := curlConfigValue("password=" + password)
+	if err != nil {
+		return "", fmt.Errorf("encode ArchivesSpace password: %w", err)
+	}
+	curlArgs := []string{"curl", "-fsS", "-X", "POST", "--config", "-", "--", requestURL}
+	return archivesSpaceRunCurl(cmd.Context(), s, cmd, curlArgs, "form-string = "+passwordValue+"\n")
+}
+
+func runArchivesSpaceContainerCurl(runCtx context.Context, s *sitectlplugin.SDK, cmd *cobra.Command, args []string, input string) (string, error) {
+	ctx, err := s.ContextFromCommand(cmd)
+	if err != nil {
+		return "", err
+	}
+	client, err := s.GetDockerClient()
+	if err != nil {
+		return "", fmt.Errorf("connect to Docker for ArchivesSpace API request: %w", err)
+	}
+	defer func() { _ = client.Close() }()
+
+	containerName, err := client.GetContainerNameContext(runCtx, ctx, archivesSpaceService)
+	if err != nil {
+		return "", fmt.Errorf("find running ArchivesSpace container: %w", err)
+	}
+	if strings.TrimSpace(containerName) == "" {
+		return "", fmt.Errorf("ArchivesSpace service is not running")
+	}
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	exitCode, err := client.Exec(runCtx, docker.ExecOptions{
+		Container:    containerName,
+		Cmd:          append([]string(nil), args...),
+		AttachStdin:  input != "",
+		AttachStdout: true,
+		AttachStderr: true,
+		Stdin:        strings.NewReader(input),
+		Stdout:       &stdout,
+		Stderr:       &stderr,
+	})
+	if err != nil {
+		return "", fmt.Errorf("run ArchivesSpace API request: %w", err)
+	}
+	if exitCode != 0 {
+		detail := strings.TrimSpace(stderr.String())
+		if detail == "" {
+			detail = "curl exited without diagnostic output"
+		}
+		return "", fmt.Errorf("ArchivesSpace API request failed with exit code %d: %s", exitCode, detail)
+	}
+	return strings.TrimSpace(stdout.String()), nil
+}
+
+func writeArchivesSpaceOutput(cmd *cobra.Command, output string) {
+	if output == "" {
+		return
+	}
+	fmt.Fprintln(cmd.OutOrStdout(), output)
+}
+
+func readArchivesSpaceSecret(explicitFile, fileEnv, valueEnv string) (string, error) {
+	value, err := readArchivesSpaceSecretIfConfigured(explicitFile, fileEnv, valueEnv)
+	if err != nil {
+		return "", err
+	}
+	if value == "" {
+		return "", fmt.Errorf("provide --%s-file, %s, or %s", secretFlagName(valueEnv), fileEnv, valueEnv)
+	}
+	return value, nil
+}
+
+func readArchivesSpaceSecretIfConfigured(explicitFile, fileEnv, valueEnv string) (string, error) {
+	filename := strings.TrimSpace(explicitFile)
+	if filename == "" {
+		filename = strings.TrimSpace(os.Getenv(fileEnv))
+	}
+	value := ""
+	if filename != "" {
+		data, err := os.ReadFile(filename) // #nosec G304 -- the operator explicitly selects the local credential file.
+		if err != nil {
+			return "", fmt.Errorf("read credential file %q: %w", filename, err)
+		}
+		value = strings.TrimSuffix(string(data), "\n")
+		value = strings.TrimSuffix(value, "\r")
+	} else {
+		value = os.Getenv(valueEnv)
+	}
+	if value == "" {
+		return "", nil
+	}
+	if _, err := curlConfigValue(value); err != nil {
+		return "", err
+	}
+	return value, nil
+}
+
+func secretFlagName(valueEnv string) string {
+	if valueEnv == archivesSpacePasswordEnv {
+		return "password"
+	}
+	return "session"
+}
+
+func curlConfigValue(value string) (string, error) {
+	if strings.ContainsAny(value, "\r\n\x00") {
+		return "", fmt.Errorf("credential contains a forbidden line or NUL character")
+	}
+	value = strings.ReplaceAll(value, `\`, `\\`)
+	value = strings.ReplaceAll(value, `"`, `\"`)
+	return `"` + value + `"`, nil
+}
+
+func curlConfigDataValue(value string) (string, error) {
+	if strings.ContainsRune(value, '\x00') {
+		return "", fmt.Errorf("request body contains a forbidden NUL character")
+	}
+	var encoded strings.Builder
+	encoded.Grow(len(value) + 2)
+	encoded.WriteByte('"')
+	for _, char := range value {
+		switch char {
+		case '\\':
+			encoded.WriteString(`\\`)
+		case '"':
+			encoded.WriteString(`\"`)
+		case '\n':
+			encoded.WriteString(`\n`)
+		case '\r':
+			encoded.WriteString(`\r`)
+		case '\t':
+			encoded.WriteString(`\t`)
+		default:
+			if char < 0x20 {
+				return "", fmt.Errorf("request body contains unsupported control character U+%04X", char)
+			}
+			encoded.WriteRune(char)
+		}
+	}
+	encoded.WriteByte('"')
+	return encoded.String(), nil
 }
 
 func runArchivesSpaceScript(s *sitectlplugin.SDK, cmd *cobra.Command, script string, args ...string) error {
@@ -303,6 +511,9 @@ func buildArchivesSpaceAPIURL(baseURL, path string, queryPairs []string) (string
 	parsed, err := url.Parse(raw)
 	if err != nil {
 		return "", fmt.Errorf("parse API URL: %w", err)
+	}
+	if (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" || parsed.User != nil {
+		return "", fmt.Errorf("API URL must use http or https with a host and no embedded credentials")
 	}
 	values := parsed.Query()
 	for _, pair := range queryPairs {

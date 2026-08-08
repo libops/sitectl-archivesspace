@@ -32,8 +32,12 @@ jobs:
       checkout-source: template
       project-path: archivesspace-site-template
       local-plugin-path: sitectl-archivesspace
-      allow-unversioned-packages: true
+      packages: sitectl
+      package-versions: sitectl=1.7.0
+      allow-unversioned-packages: false
       expected-template-lock-revision: v1.0.0
+      run-verify: true
+      verify-args: --disposable
 
   integration-gate:
     name: sitectl create archivesspace default
