@@ -54,7 +54,7 @@ func (r *archivesSpaceVerifyRunner) Run(cmd *cobra.Command, _ *config.Context) (
 	repositoriesOutput, repositoriesErr := executeArchivesSpaceAPIRequest(r.sdk, cmd, "GET", "repositories", requestOpts)
 	results = append(results, archivesSpaceRepositoriesResult(repositoriesOutput, repositoriesErr))
 
-	requestOpts.query = []string{"q[]=*", "page_size=1"}
+	requestOpts.query = []string{"q=*", "page=1", "page_size=1"}
 	searchOutput, searchErr := executeArchivesSpaceAPIRequest(r.sdk, cmd, "GET", "search", requestOpts)
 	results = append(results, archivesSpaceSearchResult(searchOutput, searchErr))
 	return results, nil
@@ -96,19 +96,16 @@ func archivesSpaceVersionResult(output string, requestErr error) sitevalidate.Re
 	if requestErr != nil {
 		return failedArchivesSpaceVerifyResult("verify:archivesspace:api-version", requestErr.Error(), "confirm the ArchivesSpace backend API is running on the configured URL")
 	}
-	var response struct {
-		Version string `json:"archivesSpaceVersion"`
+	const prefix = "ArchivesSpace (v"
+	trimmed := strings.TrimSpace(output)
+	if !strings.HasPrefix(trimmed, prefix) || !strings.HasSuffix(trimmed, ")") {
+		return failedArchivesSpaceVerifyResult("verify:archivesspace:api-version", fmt.Sprintf("unexpected version response %q", trimmed), "confirm the configured URL points to the ArchivesSpace backend API")
 	}
-	if err := json.Unmarshal([]byte(output), &response); err != nil {
-		return failedArchivesSpaceVerifyResult("verify:archivesspace:api-version", fmt.Sprintf("decode version response: %v", err), "confirm the backend API and application image use a compatible ArchivesSpace release")
+	version := strings.TrimSuffix(strings.TrimPrefix(trimmed, prefix), ")")
+	if version != archivesSpaceExpectedVersion {
+		return failedArchivesSpaceVerifyResult("verify:archivesspace:api-version", fmt.Sprintf("backend reports %s, expected %s", version, archivesSpaceExpectedVersion), "rebuild the site from the supported ArchivesSpace application and Solr image pair")
 	}
-	if strings.TrimSpace(response.Version) == "" {
-		return failedArchivesSpaceVerifyResult("verify:archivesspace:api-version", "version response omitted archivesSpaceVersion", "confirm the configured URL points to the ArchivesSpace backend API")
-	}
-	if strings.TrimSpace(response.Version) != archivesSpaceExpectedVersion {
-		return failedArchivesSpaceVerifyResult("verify:archivesspace:api-version", fmt.Sprintf("backend reports %s, expected %s", response.Version, archivesSpaceExpectedVersion), "rebuild the site from the supported ArchivesSpace application and Solr image pair")
-	}
-	return sitevalidate.Result{Name: "verify:archivesspace:api-version", Status: sitevalidate.StatusOK, Detail: response.Version}
+	return sitevalidate.Result{Name: "verify:archivesspace:api-version", Status: sitevalidate.StatusOK, Detail: version}
 }
 
 func archivesSpaceRepositoriesResult(output string, requestErr error) sitevalidate.Result {

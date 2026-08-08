@@ -24,7 +24,7 @@ func TestArchivesSpaceAPIRequestKeepsSessionOutOfCommandArguments(t *testing.T) 
 	archivesSpaceRunCurl = func(_ context.Context, _ *plugin.SDK, _ *cobra.Command, args []string, input string) (string, error) {
 		gotArgs = append([]string(nil), args...)
 		gotInput = input
-		return `{"archivesSpaceVersion":"4.2.0"}`, nil
+		return `ArchivesSpace (v4.2.0)`, nil
 	}
 
 	sdk := plugin.NewSDK(plugin.Metadata{Name: pluginName})
@@ -55,6 +55,31 @@ func TestArchivesSpaceAPIRequestKeepsSessionOutOfCommandArguments(t *testing.T) 
 	}
 	if cmd.Flags().Lookup("session-file") == nil {
 		t.Fatal("expected --session-file credential reference")
+	}
+	if strings.TrimSpace(stdout.String()) != "ArchivesSpace (v4.2.0)" {
+		t.Fatalf("version command output = %q, want documented plain-text response", stdout.String())
+	}
+}
+
+func TestArchivesSpaceSearchUsesDocumentedQueryAndDefaultPage(t *testing.T) {
+	original := archivesSpaceRunCurl
+	t.Cleanup(func() { archivesSpaceRunCurl = original })
+
+	var gotArgs []string
+	archivesSpaceRunCurl = func(_ context.Context, _ *plugin.SDK, _ *cobra.Command, args []string, _ string) (string, error) {
+		gotArgs = append([]string(nil), args...)
+		return `{"total_hits":0,"results":[]}`, nil
+	}
+
+	sdk := plugin.NewSDK(plugin.Metadata{Name: pluginName})
+	cmd := archivesSpaceSearchCommand(sdk)
+	if err := cmd.RunE(cmd, []string{"*"}); err != nil {
+		t.Fatalf("search command error = %v", err)
+	}
+
+	joined := strings.Join(gotArgs, " ")
+	if !strings.Contains(joined, "page=1") || !strings.Contains(joined, "q=%2A") || strings.Contains(joined, "q%5B%5D") {
+		t.Fatalf("search did not use documented q and pagination parameters: %q", joined)
 	}
 }
 

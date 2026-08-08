@@ -41,8 +41,9 @@ sitectl validate
 sitectl verify --session-file /run/secrets/archivesspace_session
 ```
 
-`verify` confirms the backend API version, authenticated repository access, and
-Solr-backed search. Supply credentials by reference with `--session-file` or
+`verify` confirms the backend API's documented plain-text version response,
+authenticated repository access, and a paginated Solr-backed search. Supply
+credentials by reference with `--session-file` or
 `ARCHIVESSPACE_SESSION_FILE`; `ARCHIVESSPACE_SESSION` is also supported for
 ephemeral environments. The session value is sent to `curl` over stdin and is
 never rendered into a Compose shell command or process argument. Fresh-install

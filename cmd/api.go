@@ -180,7 +180,18 @@ func archivesSpaceSearchCommand(s *sitectlplugin.SDK) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			query := append([]string{}, opts.query...)
-			query = append(query, "q[]="+args[0])
+			query = append(query, "q="+args[0])
+			pageConfigured := false
+			for _, pair := range query {
+				key, _, _ := strings.Cut(pair, "=")
+				if key == "page" {
+					pageConfigured = true
+					break
+				}
+			}
+			if !pageConfigured {
+				query = append(query, "page=1")
+			}
 			if recordType != "" {
 				query = append(query, "type[]="+recordType)
 			}
