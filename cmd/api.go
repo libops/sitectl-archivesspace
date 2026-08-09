@@ -513,7 +513,7 @@ func curlConfigDataValue(value string) (string, error) {
 func runArchivesSpaceScript(s *sitectlplugin.SDK, cmd *cobra.Command, script string, args ...string) error {
 	commandArgs := []string{"/archivesspace/scripts/" + script}
 	commandArgs = append(commandArgs, args...)
-	return s.RunActiveComposeProjectCommand(cmd, sitectlplugin.DockerComposeExecCommand(archivesSpaceService, commandArgs...))
+	return s.RunActiveComposeProjectArgv(cmd, sitectlplugin.DockerComposeExecArgv(archivesSpaceService, commandArgs...))
 }
 
 func buildArchivesSpaceAPIURL(baseURL, path string, queryPairs []string) (string, error) {
