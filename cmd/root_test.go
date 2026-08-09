@@ -36,6 +36,9 @@ func TestRegisterCommandsRegistersApplicationComponents(t *testing.T) {
 func TestCreateDefinitionLifecycleContract(t *testing.T) {
 	t.Parallel()
 	spec := createDefinition()
+	if spec.DockerComposeBranch != "v1.0.1" {
+		t.Fatalf("ArchivesSpace template revision = %q, want immutable v1.0.1", spec.DockerComposeBranch)
+	}
 	if len(spec.Images) != 2 || spec.Images[0].Image != "libops/archivesspace:4.2.0" || spec.Images[0].BuildPolicy != plugin.BuildPolicyAlways {
 		t.Fatalf("unexpected ArchivesSpace image contract: %+v", spec.Images)
 	}
